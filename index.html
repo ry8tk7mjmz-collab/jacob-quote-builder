@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Jacob's Interviews & Podcasts — Quote Builder</title>
+
+<!--
+  ============================================================
+  EDIT YOUR PRICES HERE -> scroll down to the CONFIG block in
+  the <script> section. Everything (the screen + the PDF) is
+  driven from that one object. Change a number, save, refresh.
+  ============================================================
+-->
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+  :root{
+    /* Brand palette, pulled from the logo: deep navy on warm cream */
+    --navy:    oklch(28% 0.045 250);
+    --navy-2:  oklch(34% 0.045 250);
+    --cream:   #FBF3E5; /* exact logo background, so the logo blends into the page */
+    --cream-2: oklch(97.5% 0.012 85);
+    --paper:   oklch(99% 0.008 85);
+    --line:    oklch(86% 0.022 85);
+    --ink:     oklch(30% 0.04 250);
+    --muted:   oklch(52% 0.03 250);
+    --gold:    oklch(72% 0.10 80);
+    --shadow:  0 1px 2px oklch(28% 0.05 250 / .05), 0 10px 30px oklch(28% 0.05 250 / .08);
+    --ease:    cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html{ -webkit-text-size-adjust:100%; }
+  body{
+    font-family:"DM Sans", system-ui, sans-serif;
+    background:var(--cream);
+    color:var(--ink);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:128px; /* room for the sticky total bar */
+  }
+  .wrap{ max-width:640px; margin:0 auto; padding:0 20px; }
+
+  /* ---------- Header / wordmark ---------- */
+  header{ padding:34px 0 8px; text-align:center; }
+  .logo{ display:block; width:auto; height:auto; max-width:172px; max-height:172px; margin:2px auto 0; }
+  .word{ text-align:center; }
+  .word .name{ font-family:"Fraunces", serif; font-weight:600; font-size:27px; line-height:1; color:var(--navy); letter-spacing:.2px; }
+  .word .sub{ font-size:10.5px; font-weight:600; letter-spacing:.22em; text-transform:uppercase; color:var(--navy-2); margin-top:3px; }
+  .lede{ text-align:center; color:var(--muted); font-size:15px; margin:18px auto 4px; max-width:34ch; }
+
+  /* ---------- Section heads ---------- */
+  .sec{ margin-top:30px; }
+  .sec-h{ font-size:12px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin-bottom:13px; padding-left:2px; }
+
+  /* ---------- Tier cards ---------- */
+  .tiers{ display:flex; flex-direction:column; gap:11px; }
+  .tier{
+    position:relative; text-align:left; width:100%;
+    background:var(--paper); border:1.5px solid var(--line); border-radius:16px;
+    padding:18px 18px 18px 19px; cursor:pointer;
+    transition:border-color .25s var(--ease), box-shadow .25s var(--ease), transform .12s var(--ease), background .25s var(--ease);
+  }
+  .tier:active{ transform:scale(.992); }
+  .tier:hover{ border-color:var(--navy-2); }
+  .tier.on{ border-color:var(--navy); background:var(--navy); box-shadow:var(--shadow); }
+  .tier.on .t-name, .tier.on .t-price{ color:var(--cream-2); }
+  .tier.on .t-blurb{ color:oklch(86% 0.02 85 / .85); }
+  .tier.on .t-inc li{ color:oklch(90% 0.015 85 / .92); }
+  .tier.on .t-inc li::before{ color:var(--gold); }
+  .tier.on .t-rec{ background:var(--gold); color:var(--navy); }
+
+  .t-top{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
+  .t-name{ font-family:"Fraunces", serif; font-size:21px; font-weight:600; color:var(--navy); }
+  .t-price{ font-size:20px; font-weight:600; color:var(--navy); white-space:nowrap; }
+  .t-price small{ font-size:12px; font-weight:500; color:var(--muted); }
+  .t-blurb{ font-size:13.5px; color:var(--muted); margin-top:3px; }
+  .t-inc{ list-style:none; margin-top:13px; display:flex; flex-direction:column; gap:6px; }
+  .t-inc li{ font-size:13.5px; color:var(--ink); padding-left:20px; position:relative; }
+  .t-inc li::before{ content:"✓"; position:absolute; left:0; top:0; color:var(--navy-2); font-size:12px; font-weight:700; }
+  .t-rec{ position:absolute; top:-9px; right:16px; background:var(--navy); color:var(--cream-2); font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; padding:3px 9px; border-radius:99px; }
+
+  /* ---------- Add-on / modifier rows ---------- */
+  .rows{ background:var(--paper); border:1.5px solid var(--line); border-radius:16px; overflow:hidden; }
+  .row{ display:flex; align-items:center; gap:14px; padding:14px 16px; border-top:1px solid var(--line); }
+  .row:first-child{ border-top:none; }
+  .row .r-main{ flex:1; min-width:0; }
+  .row .r-name{ font-size:14.5px; font-weight:500; color:var(--ink); }
+  .row .r-price{ font-size:12.5px; color:var(--muted); margin-top:1px; }
+  .row.on .r-name{ color:var(--navy); }
+
+  /* toggle */
+  .tog{ flex-shrink:0; width:46px; height:28px; border-radius:99px; background:var(--line); border:none; position:relative; cursor:pointer; transition:background .25s var(--ease); }
+  .tog::after{ content:""; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:var(--paper); box-shadow:0 1px 3px oklch(28% .05 250 /.25); transition:transform .25s var(--ease); }
+  .tog.on{ background:var(--navy); }
+  .tog.on::after{ transform:translateX(18px); }
+
+  /* qty stepper */
+  .qty{ flex-shrink:0; display:flex; align-items:center; gap:0; border:1.5px solid var(--line); border-radius:99px; overflow:hidden; }
+  .qty button{ width:34px; height:32px; border:none; background:var(--paper); color:var(--navy); font-size:18px; font-weight:500; cursor:pointer; transition:background .15s; }
+  .qty button:active{ background:var(--cream); }
+  .qty span{ min-width:30px; text-align:center; font-size:15px; font-weight:600; color:var(--ink); }
+  .qty.zero span{ color:var(--muted); }
+
+  /* ---------- "Prepared for" inputs ---------- */
+  .fields{ display:flex; flex-direction:column; gap:10px; }
+  .field label{ display:block; font-size:12px; font-weight:600; color:var(--muted); margin-bottom:5px; padding-left:2px; }
+  .field input{
+    width:100%; font-family:inherit; font-size:15px; color:var(--ink);
+    background:var(--paper); border:1.5px solid var(--line); border-radius:12px;
+    padding:13px 15px; transition:border-color .2s var(--ease);
+  }
+  .field input:focus{ outline:none; border-color:var(--navy); }
+  .field input::placeholder{ color:oklch(64% 0.02 250); }
+
+  /* ---------- Sticky total bar ---------- */
+  .bar{
+    position:fixed; left:0; right:0; bottom:0; z-index:50;
+    background:var(--navy);
+    padding:14px 20px calc(14px + env(safe-area-inset-bottom));
+    box-shadow:0 -10px 30px oklch(28% .05 250 / .18);
+  }
+  .bar-in{ max-width:640px; margin:0 auto; display:flex; align-items:center; gap:14px; }
+  .bar .lab{ font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:oklch(80% 0.02 85 / .7); }
+  .bar .amt{ font-family:"Fraunces", serif; font-size:30px; font-weight:600; color:var(--cream-2); line-height:1; margin-top:2px; }
+  .bar .meta{ flex:1; min-width:0; }
+  .dl{
+    flex-shrink:0; font-family:inherit; font-size:15px; font-weight:600; color:var(--navy);
+    background:var(--gold); border:none; border-radius:12px; padding:15px 22px; cursor:pointer;
+    transition:transform .12s var(--ease), filter .2s var(--ease);
+    display:inline-flex; align-items:center; gap:8px;
+  }
+  .dl:active{ transform:scale(.97); }
+  .dl:disabled{ filter:grayscale(.6) brightness(.95); opacity:.55; cursor:not-allowed; }
+  .dl svg{ width:17px; height:17px; }
+
+  footer{ text-align:center; color:var(--muted); font-size:12px; padding:34px 0 10px; }
+
+  @media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
+</style>
+</head>
+<body>
+
+<header>
+  <!-- Drop his real logo file in this folder as logo.png and it shows here.
+       Until then, a plain text fallback is used (no invented mark). -->
+  <img class="logo" src="logo.png" alt="Jacob's Interviews & Podcasts"
+       onerror="this.style.display='none';document.getElementById('wordmark').style.display='inline-block';" />
+  <div class="word" id="wordmark" style="display:none">
+    <div class="name">Jacob's</div>
+    <div class="sub">Interviews &amp; Podcasts</div>
+  </div>
+  <p class="lede">Build a promo package and send a clean quote in seconds.</p>
+</header>
+
+<main class="wrap">
+
+  <section class="sec">
+    <div class="sec-h">1 &nbsp;·&nbsp; Choose a package</div>
+    <div class="tiers" id="tiers"></div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-h">2 &nbsp;·&nbsp; Add-ons</div>
+    <div class="rows" id="addons"></div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-h">3 &nbsp;·&nbsp; Who is this for?</div>
+    <div class="fields">
+      <div class="field">
+        <label for="cName">Client / contact name</label>
+        <input id="cName" type="text" placeholder="e.g. Sarah Mills" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label for="cCo">Company (optional)</label>
+        <input id="cCo" type="text" placeholder="e.g. Northwind Coffee" autocomplete="off" />
+      </div>
+    </div>
+  </section>
+
+  <footer>Prices are starting estimates. Final quote confirmed by Jacob.</footer>
+</main>
+
+<div class="bar">
+  <div class="bar-in">
+    <div class="meta">
+      <div class="lab">Estimated total</div>
+      <div class="amt" id="total">$0</div>
+    </div>
+    <button class="dl" id="download" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16"/></svg>
+      Download PDF
+    </button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIG  —  EDIT EVERYTHING HERE
+   Change names, prices, what's included. The screen and the
+   PDF both read from this. No other code needs touching.
+   ============================================================ */
+const CONFIG = {
+  brand: {
+    name: "Jacob's",
+    tagline: "Interviews & Podcasts",
+    email: "hello@jacobspodcasts.com",   // shown on the PDF footer
+    phone: "",                            // optional, leave "" to hide
+    quoteValidDays: 14,
+  },
+  currency: "$",
+
+  tiers: [
+    { id:"spotlight", name:"Spotlight", price:75,
+      blurb:"Get featured on the show.",
+      includes:[
+        "Guest spot on an episode (up to 30 min)",
+        "Published to the podcast",
+        "1 social clip",
+      ] },
+    { id:"feature", name:"Feature", price:150, recommended:true,
+      blurb:"A full episode plus a promo push.",
+      includes:[
+        "Full interview episode (up to 45 min)",
+        "Audio + video version",
+        "3 social clips",
+        "Cross-promo post on our page",
+        "Your links in the description",
+      ] },
+    { id:"partner", name:"Partner", price:300,
+      blurb:"The full feature, top of the line.",
+      includes:[
+        "Full episode (up to 60 min)",
+        "6 social clips",
+        "Shoutout / ad mention in the episode",
+        "Pushed across all our socials",
+        "Priority scheduling",
+      ] },
+  ],
+
+  // qty:true shows a +/- stepper. Otherwise it's an on/off toggle.
+  addons: [
+    { id:"clip",     name:"Extra social clip",            price:20,  qty:true, max:20 },
+    { id:"episode",  name:"Extra appearance / episode",   price:120, qty:true, max:10 },
+    { id:"shoutout", name:"Shoutout / product mention",   price:50  },
+    { id:"post",     name:"Promo post on his page",       price:40  },
+  ],
+
+  // none for now. He's just starting out, no rush or bundle pricing.
+  modifiers: [],
+};
+
+/* ============================================================
+   STATE + LOGIC  (no need to edit below)
+   ============================================================ */
+const state = { tier:"feature", addons:{}, mods:{} };
+CONFIG.addons.forEach(a => state.addons[a.id] = 0);     // qty addons: count; toggles: 0/1
+CONFIG.modifiers.forEach(m => state.mods[m.id] = false);
+
+const $ = s => document.querySelector(s);
+const money = n => CONFIG.currency + Math.round(n).toLocaleString();
+
+function calc(){
+  const tier = CONFIG.tiers.find(t => t.id === state.tier);
+  let subtotal = tier ? tier.price : 0;
+  CONFIG.addons.forEach(a => { subtotal += a.price * state.addons[a.id]; });
+  let total = subtotal, pctTotal = 0;
+  CONFIG.modifiers.forEach(m => { if(state.mods[m.id]) pctTotal += m.percent; });
+  total = subtotal * (1 + pctTotal/100);
+  return { tier, subtotal, pctTotal, total };
+}
+
+/* ---------- render tiers ---------- */
+function renderTiers(){
+  $("#tiers").innerHTML = CONFIG.tiers.map(t => `
+    <button class="tier ${state.tier===t.id?'on':''}" data-tier="${t.id}">
+      ${t.recommended ? '<span class="t-rec">Most popular</span>' : ''}
+      <div class="t-top">
+        <span class="t-name">${t.name}</span>
+        <span class="t-price">${money(t.price)} <small>start</small></span>
+      </div>
+      <div class="t-blurb">${t.blurb}</div>
+      <ul class="t-inc">${t.includes.map(i=>`<li>${i}</li>`).join('')}</ul>
+    </button>`).join('');
+  document.querySelectorAll('[data-tier]').forEach(el =>
+    el.addEventListener('click', () => { state.tier = el.dataset.tier; renderTiers(); update(); }));
+}
+
+/* ---------- render addons ---------- */
+function renderAddons(){
+  $("#addons").innerHTML = CONFIG.addons.map(a => {
+    const v = state.addons[a.id];
+    const control = a.qty
+      ? `<div class="qty ${v===0?'zero':''}" data-q="${a.id}">
+           <button data-d="-1" aria-label="less">−</button><span>${v}</span><button data-d="1" aria-label="more">+</button>
+         </div>`
+      : `<button class="tog ${v?'on':''}" data-t="${a.id}" aria-label="toggle"></button>`;
+    return `<div class="row ${v?'on':''}">
+        <div class="r-main"><div class="r-name">${a.name}</div>
+        <div class="r-price">${money(a.price)}${a.qty?' each':''}</div></div>
+        ${control}</div>`;
+  }).join('');
+
+  document.querySelectorAll('[data-t]').forEach(el =>
+    el.addEventListener('click', () => { const id=el.dataset.t; state.addons[id]=state.addons[id]?0:1; renderAddons(); update(); }));
+  document.querySelectorAll('[data-q] button').forEach(el =>
+    el.addEventListener('click', () => {
+      const id = el.parentElement.dataset.q, a = CONFIG.addons.find(x=>x.id===id);
+      let n = state.addons[id] + parseInt(el.dataset.d);
+      n = Math.max(0, Math.min(a.max||99, n));
+      state.addons[id] = n; renderAddons(); update();
+    }));
+}
+
+/* ---------- render modifiers ---------- */
+function renderMods(){
+  $("#mods").innerHTML = CONFIG.modifiers.map(m => {
+    const on = state.mods[m.id], sign = m.percent>0?'+':'';
+    return `<div class="row ${on?'on':''}">
+        <div class="r-main"><div class="r-name">${m.name}</div>
+        <div class="r-price">${sign}${m.percent}% of subtotal</div></div>
+        <button class="tog ${on?'on':''}" data-m="${m.id}" aria-label="toggle"></button></div>`;
+  }).join('');
+  document.querySelectorAll('[data-m]').forEach(el =>
+    el.addEventListener('click', () => { const id=el.dataset.m; state.mods[id]=!state.mods[id]; renderMods(); update(); }));
+}
+
+/* ---------- total (with a small count-up) ---------- */
+let shown = 0;
+function update(){
+  const { total } = calc();
+  const from = shown, to = total, t0 = performance.now(), dur = 420;
+  (function step(now){
+    const p = Math.min((now-t0)/dur, 1), e = 1 - Math.pow(1-p, 4);
+    $("#total").textContent = money(from + (to-from)*e);
+    if(p<1) requestAnimationFrame(step); else { $("#total").textContent = money(to); shown = to; }
+  })(t0);
+  $("#download").disabled = !state.tier || total<=0;
+}
+
+/* ============================================================
+   PDF  —  branded quote document
+   ============================================================ */
+function fmtDate(d){ return d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}); }
+
+// preload his real logo as a data URL so it can be drawn into the PDF.
+// Falls back to text if a browser blocks reading the local file (file://).
+let LOGO_DATA = null, LOGO_RATIO = 1;
+(function preloadLogo(){
+  const img = new Image();
+  img.onload = () => {
+    try{
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      c.getContext('2d').drawImage(img, 0, 0);
+      LOGO_DATA = c.toDataURL('image/png');
+      LOGO_RATIO = img.naturalWidth / img.naturalHeight;
+    }catch(e){ LOGO_DATA = null; }
+  };
+  img.src = 'logo.png';
+})();
+
+function buildPDF(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit:'pt', format:'letter' });
+  const W = 612, H = 792, M = 64;
+  const PAGE=[251,243,229], NAVY=[33,50,70], INK=[46,56,68], MUTED=[124,134,146], GOLD=[183,146,78], LINE=[226,217,199];
+  let y = 0;
+
+  // soft cream page, on brand
+  doc.setFillColor(...PAGE); doc.rect(0,0,W,H,'F');
+
+  // his real logo, top left (text fallback if it could not be read)
+  if(LOGO_DATA){
+    const h = 60, w = h * LOGO_RATIO;
+    doc.addImage(LOGO_DATA, 'PNG', M, 48, w, h);
+  } else {
+    doc.setFont('times','bold'); doc.setFontSize(27); doc.setTextColor(...NAVY);
+    doc.text(CONFIG.brand.name, M, 92);
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...MUTED);
+    doc.text(CONFIG.brand.tagline.toUpperCase(), M, 108, {charSpace:2.4});
+  }
+
+  // quote meta, top right
+  const now = new Date(), until = new Date(now.getTime()+CONFIG.brand.quoteValidDays*864e5);
+  const qno = 'Q-' + now.toISOString().slice(0,10).replace(/-/g,'') + '-' + String(Math.floor(Math.random()*900)+100);
+  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(...NAVY);
+  doc.text('QUOTE', W-M, 86, {align:'right', charSpace:2});
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...MUTED);
+  doc.text(qno, W-M, 100, {align:'right'});
+  doc.text(fmtDate(now), W-M, 113, {align:'right'});
+
+  // gold hairline
+  doc.setDrawColor(...GOLD); doc.setLineWidth(0.8); doc.line(M,134,W-M,134);
+
+  // prepared for
+  y = 172;
+  const name = ($("#cName").value||'').trim(), co = ($("#cCo").value||'').trim();
+  doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...MUTED);
+  doc.text('PREPARED FOR', M, y, {charSpace:2});
+  doc.setFont('helvetica','normal'); doc.setFontSize(14); doc.setTextColor(...INK);
+  doc.text(name || co || 'Prospective client', M, y+20);
+  if(name && co){ doc.setFontSize(11); doc.setTextColor(...MUTED); doc.text(co, M, y+37); y+=17; }
+
+  // package
+  const { tier, subtotal, total } = calc();
+  y += 64;
+  if(tier){
+    doc.setFont('times','bold'); doc.setFontSize(17); doc.setTextColor(...NAVY);
+    doc.text(tier.name + ' package', M, y);
+    doc.setFont('helvetica','normal'); doc.setFontSize(14); doc.setTextColor(...INK);
+    doc.text(money(tier.price), W-M, y, {align:'right'});
+    y += 22;
+    doc.setFontSize(10.5); doc.setTextColor(...MUTED);
+    tier.includes.forEach(i => { doc.text('—  ' + i, M, y); y += 16; });
+    y += 12;
+  }
+
+  // add-ons
+  const chosen = CONFIG.addons.filter(a => state.addons[a.id]>0);
+  if(chosen.length){
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...MUTED);
+    doc.text('ADD-ONS', M, y, {charSpace:2}); y += 18;
+    doc.setFont('helvetica','normal'); doc.setFontSize(12); doc.setTextColor(...INK);
+    chosen.forEach(a => {
+      const q = state.addons[a.id];
+      doc.text(a.name + (a.qty?`  ×${q}`:''), M, y);
+      doc.text(money(a.price*q), W-M, y, {align:'right'});
+      y += 19;
+    });
+    y += 14;
+  }
+
+  // total
+  doc.setDrawColor(...LINE); doc.setLineWidth(1); doc.line(M,y,W-M,y); y += 30;
+  doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(...MUTED);
+  doc.text('TOTAL', M, y, {charSpace:2.5});
+  doc.setFont('times','bold'); doc.setFontSize(26); doc.setTextColor(...NAVY);
+  doc.text(money(total), W-M, y+3, {align:'right'});
+
+  // footer pinned near the bottom
+  let fy = H - 96;
+  doc.setDrawColor(...LINE); doc.setLineWidth(1); doc.line(M,fy,W-M,fy); fy += 20;
+  doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(...MUTED);
+  let contact = `Quote valid until ${fmtDate(until)}.`;
+  contact += '   ·   ' + CONFIG.brand.email;
+  if(CONFIG.brand.phone) contact += '   ·   ' + CONFIG.brand.phone;
+  doc.text(contact, M, fy); fy += 22;
+  doc.setFont('times','italic'); doc.setFontSize(12); doc.setTextColor(...NAVY);
+  doc.text('Thanks for working with Jacob.', M, fy);
+
+  const safe = (name||co||'quote').replace(/[^a-z0-9]+/gi,'-').toLowerCase();
+  doc.save(`jacobs-quote-${safe}.pdf`);
+}
+
+$("#download").addEventListener('click', () => { if(!$("#download").disabled) buildPDF(); });
+
+/* boot */
+renderTiers(); renderAddons(); update();
+</script>
+</body>
+</html>
