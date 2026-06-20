@@ -142,9 +142,26 @@
   footer{ text-align:center; color:var(--muted); font-size:12px; padding:34px 0 10px; }
 
   @media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
+
+  /* ---------- Availability gate (remote on/off kill switch) ---------- */
+  #gate{ position:fixed; inset:0; z-index:9999; background:var(--cream);
+    display:flex; align-items:center; justify-content:center; padding:32px; text-align:center; }
+  #gate .g-card{ max-width:330px; }
+  #gate .g-logo{ width:118px; height:auto; margin:0 auto 22px; display:block; }
+  #gate .g-title{ font-family:"Fraunces", serif; font-size:23px; color:var(--navy); margin-bottom:9px; }
+  #gate .g-msg{ font-size:15px; color:var(--muted); line-height:1.55; }
 </style>
 </head>
 <body>
+
+<!-- Remote on/off gate. Shows until status.json is confirmed active. -->
+<div id="gate" role="status" aria-live="polite">
+  <div class="g-card">
+    <img class="g-logo" src="logo.png" alt="" onerror="this.style.display='none'" />
+    <div class="g-title" id="gTitle">One moment</div>
+    <div class="g-msg" id="gMsg">Checking availability.</div>
+  </div>
+</div>
 
 <header>
   <!-- Drop his real logo file in this folder as logo.png and it shows here.
@@ -463,6 +480,36 @@ $("#download").addEventListener('click', () => { if(!$("#download").disabled) bu
 
 /* boot */
 renderTiers(); renderAddons(); update();
+
+/* ---------- remote on/off gate (checks status.json) ---------- */
+(function(){
+  const gate = document.getElementById('gate');
+  const gTitle = document.getElementById('gTitle');
+  const gMsg = document.getElementById('gMsg');
+  let known = false;
+  function apply(active){
+    known = true;
+    if(active){ gate.style.display = 'none'; }
+    else {
+      gate.style.display = 'flex';
+      gTitle.textContent = 'Temporarily unavailable';
+      gMsg.textContent = 'This tool is paused right now. Please get in touch to have it switched back on.';
+    }
+  }
+  async function check(){
+    try{
+      const r = await fetch('status.json?t=' + Date.now(), { cache:'no-store' });
+      if(!r.ok) throw 0;
+      const j = await r.json();
+      apply(j.active !== false);
+    }catch(e){
+      // network hiccup: fail open so a paying client is never locked out by a blip
+      if(!known) gate.style.display = 'none';
+    }
+  }
+  check();
+  setInterval(check, 60000);
+})();
 </script>
 </body>
 </html>
