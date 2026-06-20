@@ -147,8 +147,8 @@
   #gate{ position:fixed; inset:0; z-index:9999; background:var(--cream);
     display:flex; align-items:center; justify-content:center; padding:32px; text-align:center; }
   #gate .g-card{ max-width:330px; }
-  #gate .g-logo{ width:118px; height:auto; margin:0 auto 22px; display:block; }
-  #gate .g-title{ font-family:"Fraunces", serif; font-size:23px; color:var(--navy); margin-bottom:9px; }
+  #gate .g-lock{ width:46px; height:46px; color:var(--navy); margin:0 auto 20px; display:none; }
+  #gate .g-title{ font-family:"Fraunces", serif; font-size:26px; color:var(--navy); margin-bottom:9px; }
   #gate .g-msg{ font-size:15px; color:var(--muted); line-height:1.55; }
 </style>
 </head>
@@ -157,7 +157,11 @@
 <!-- Remote on/off gate. Shows until status.json is confirmed active. -->
 <div id="gate" role="status" aria-live="polite">
   <div class="g-card">
-    <img class="g-logo" src="logo.png" alt="" onerror="this.style.display='none'" />
+    <svg class="g-lock" id="gLock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="4.5" y="10.5" width="15" height="10" rx="2.3"/>
+      <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>
+      <circle cx="12" cy="15.3" r="1.15" fill="currentColor" stroke="none"/>
+    </svg>
     <div class="g-title" id="gTitle">One moment</div>
     <div class="g-msg" id="gMsg">Checking availability.</div>
   </div>
@@ -484,6 +488,7 @@ renderTiers(); renderAddons(); update();
 /* ---------- remote on/off gate (checks status.json) ---------- */
 (function(){
   const gate = document.getElementById('gate');
+  const gLock = document.getElementById('gLock');
   const gTitle = document.getElementById('gTitle');
   const gMsg = document.getElementById('gMsg');
   let known = false;
@@ -492,10 +497,13 @@ renderTiers(); renderAddons(); update();
     if(active){ gate.style.display = 'none'; }
     else {
       gate.style.display = 'flex';
-      gTitle.textContent = 'Temporarily unavailable';
-      gMsg.textContent = 'This tool is paused right now. Please get in touch to have it switched back on.';
+      gLock.style.display = 'block';
+      gTitle.textContent = 'Locked access for now';
+      gMsg.textContent = 'Please reach out to have your access restored.';
     }
   }
+  // Preview the locked page anytime WITHOUT locking him out: add ?preview=locked to the URL.
+  if(new URLSearchParams(location.search).get('preview') === 'locked'){ apply(false); return; }
   async function check(){
     try{
       const r = await fetch('status.json?t=' + Date.now(), { cache:'no-store' });
