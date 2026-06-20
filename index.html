@@ -504,19 +504,20 @@ renderTiers(); renderAddons(); update();
   }
   // Preview the locked page anytime WITHOUT locking him out: add ?preview=locked to the URL.
   if(new URLSearchParams(location.search).get('preview') === 'locked'){ apply(false); return; }
-  // Read the flag straight from GitHub (reflects a toggle within seconds, no Pages rebuild wait).
-  // Falls back to the local copy if GitHub raw is ever unreachable.
-  const FLAG_SOURCES = [
-    'https://raw.githubusercontent.com/ry8tk7mjmz-collab/jacob-quote-builder/main/status.json',
-    'status.json'
-  ];
+  // Read the flag from the GitHub API (authoritative + fresh, reflects a toggle within a minute).
+  // Falls back to the Pages copy if the API is ever unreachable.
+  const API_FLAG = 'https://api.github.com/repos/ry8tk7mjmz-collab/jacob-quote-builder/contents/status.json';
   async function readFlag(){
-    for(const base of FLAG_SOURCES){
-      try{
-        const r = await fetch(base + '?t=' + Date.now(), { cache:'no-store' });
-        if(r.ok) return await r.json();
-      }catch(e){}
-    }
+    try{
+      const r = await fetch(API_FLAG + '?t=' + Date.now(), {
+        cache:'no-store', headers:{ Accept:'application/vnd.github.raw' }
+      });
+      if(r.ok) return JSON.parse(await r.text());
+    }catch(e){}
+    try{
+      const r2 = await fetch('status.json?t=' + Date.now(), { cache:'no-store' });
+      if(r2.ok) return await r2.json();
+    }catch(e){}
     return null;
   }
   async function check(){
@@ -525,7 +526,7 @@ renderTiers(); renderAddons(); update();
     apply(j.active !== false);
   }
   check();
-  setInterval(check, 20000);
+  setInterval(check, 90000);
 })();
 </script>
 </body>
